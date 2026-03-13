@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 请搜索X(Twitter)上符合条件的真实用户，找5个最匹配的候选人。
 
 严格只返回以下JSON格式，不要任何其他文字、不要markdown代码块：
-{"candidates":[{"name":"名字","handle":"@用户名","location":"地区（从推文推断，不确定写未知）","score":85,"skills":["技能1","技能2"],"summary":"基于推文内容的分析（2-3句话）","reason":"推荐理由","salary_fit":"薪资匹配判断"}],"search_summary":"本次搜索总结"}`;
+{"candidates":[{"name":"名字","handle":"@用户名","location":"地区","score":85,"skills":["技能1","技能2"],"summary":"推文分析总结","reason":"推荐理由","salary_fit":"薪资匹配"}],"search_summary":"搜索总结"}`;
 
   try {
     const response = await fetch('https://api.x.ai/v1/responses', {
@@ -25,13 +25,19 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    const data = await response.json();
+    const rawText = await response.text();
 
+    // 如果不是 200，直接返回完整错误信息供调试
     if (!response.ok) {
-      return NextResponse.json({ error: `API错误: ${data.error || response.status}` }, { status: 500 });
+      return NextResponse.json({
+        error: `API错误: ${response.status}`,
+        detail: rawText.slice(0, 300),
+      }, { status: 500 });
     }
 
-    // 从 output 里提取文字内容
+    const data = JSON.parse(rawText);
+
+    // 从 output 里提取文字
     let content = '';
     for (const output of data.output || []) {
       if (output.type === 'message') {
@@ -42,10 +48,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!content) {
-      return NextResponse.json({ error: '未获取到结果，请重试' }, { status: 500 });
+      return NextResponse.json({ error: '未获取到结果', debug: JSON.stringify(data).slice(0, 300) }, { status: 500 });
     }
 
-    // 提取 JSON（去掉 markdown 代码块）
+    // 提取 JSON
     let jsonStr = content.trim()
       .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
     const start = jsonStr.indexOf('{');
@@ -53,11 +59,11 @@ export async function POST(req: NextRequest) {
     if (start !== -1 && end !== -1) jsonStr = jsonStr.slice(start, end + 1);
 
     try {
-      const result = JSON.parse(jsonStr);
-      return NextResponse.json(result);
+      return NextResponse.json(JSON.parse(jsonStr));
     } catch {
-      return NextResponse.json({ error: '解析失败，请重试', debug: content.slice(0, 500) }, { status: 500 });
+      return NextResponse.json({ error: '解析失败', debug: content.slice(0, 300) }, { status: 500 });
     }
+
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
