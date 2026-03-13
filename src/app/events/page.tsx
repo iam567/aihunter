@@ -32,8 +32,21 @@ export default function EventHunterPage() {
   const [countdown, setCountdown] = useState(60);
   const [statusText, setStatusText] = useState('');
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const [excludeNames, setExcludeNames] = useState<string[]>([]);
 
-  const startHunt = async () => {
+  const nextBatch = () => {
+    const names = events.map(e => e.name).filter(Boolean);
+    const newExclude = Array.from(new Set(excludeNames.concat(names)));
+    setExcludeNames(newExclude);
+    doHunt(newExclude);
+  };
+
+  const startHunt = () => {
+    setExcludeNames([]);
+    doHunt([]);
+  };
+
+  const doHunt = async (excluded: string[]) => {
     setIsHunting(true);
     setEvents([]);
     setError('');
@@ -51,7 +64,7 @@ export default function EventHunterPage() {
       const res = await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, prefecture, period, eventType }),
+        body: JSON.stringify({ keyword, prefecture, period, eventType, excludeNames: excluded }),
       });
       clearInterval(timer);
       const data = await res.json();
@@ -205,11 +218,7 @@ export default function EventHunterPage() {
                 </div>
                 {ev.handle && (
                   <a
-                    href={
-                      ev.tweet_id
-                        ? `https://x.com/${ev.handle.replace(/[@\s]/g,'')}/status/${ev.tweet_id}`
-                        : `https://x.com/search?q=${encodeURIComponent(ev.name)}&f=live`
-                    }
+                    href={`https://x.com/search?q=${encodeURIComponent(ev.name)}&src=typed_query&f=live`}
                     target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full transition text-white"
                     style={{ background: '#dc2626' }}>
@@ -220,6 +229,21 @@ export default function EventHunterPage() {
             </div>
           ))}
         </div>
+
+        {/* 换一批按钮 */}
+        {events.length > 0 && !isHunting && (
+          <div className="text-center pt-4 pb-8">
+            <button
+              onClick={nextBatch}
+              className="inline-flex items-center gap-2 border border-white/10 hover:border-red-500/30 text-gray-300 hover:text-red-400 px-6 py-3 rounded-full text-sm font-medium transition"
+              style={{ background: 'rgba(39,39,42,0.8)' }}
+            >
+              <Sparkles className="w-4 h-4" />
+              换一批活动
+              <span className="text-xs text-gray-600 ml-1">已排除 {excludeNames.length + events.length} 条</span>
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );
