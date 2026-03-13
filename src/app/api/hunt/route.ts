@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  const { query } = await req.json();
+  const { query, excludeHandles = [] } = await req.json();
   if (!query) return NextResponse.json({ error: '请输入搜索需求' }, { status: 400 });
 
+  const excludeNote = excludeHandles.length > 0
+    ? `\n\n重要：以下账号已经推荐过，本次必须排除，不能重复：${excludeHandles.join(', ')}`
+    : '';
+
   try {
-    // ── Step 1: 让 Grok 真正搜索 X，用自然语言返回 ──
+    // ── Step 1: Grok 搜索 X 真实用户 ──
     const searchRes = await fetch('https://api.x.ai/v1/responses', {
       method: 'POST',
       headers: {
@@ -16,7 +20,7 @@ export async function POST(req: NextRequest) {
         model: 'grok-4-fast-non-reasoning',
         input: [{
           role: 'user',
-          content: `请在X(Twitter)上搜索符合以下招聘需求的真实用户：「${query}」
+          content: `请在X(Twitter)上搜索符合以下招聘需求的真实用户：「${query}」${excludeNote}
 
 请找出5-8个真实存在的X账号，对每个人必须提供：
 1. 【精确的X用户名】格式必须是 @英文字母数字下划线，例如 @username123，这是用于生成链接的关键字段，必须100%准确
@@ -25,7 +29,7 @@ export async function POST(req: NextRequest) {
 4. 从推文推断的技能和所在地区
 5. 推荐理由
 
-重要：@用户名必须是真实存在的X账号用户名，可以直接访问 x.com/用户名 找到该用户。不要编造。`
+重要：@用户名必须是真实存在的X账号用户名，可以直接访问 x.com/用户名 找到该用户。不要编造。`,
         }],
         tools: [{ type: 'x_search' }],
       }),
@@ -37,8 +41,6 @@ export async function POST(req: NextRequest) {
     }
 
     const searchData = await searchRes.json();
-
-    // 提取搜索结果文字
     let searchContent = '';
     for (const output of searchData.output || []) {
       if (output.type === 'message') {
@@ -52,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '搜索无结果，请换个关键词' }, { status: 500 });
     }
 
-    // ── Step 2: 用 grok-3 把自然语言结果整理成 JSON ──
+    // ── Step 2: grok-3-mini 整理成 JSON ──
     const formatRes = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: '你是一个数据整理助手。将用户给你的候选人信息整理成指定JSON格式，不要添加任何其他文字。',
+            content: '你是数据整理助手。将候选人信息整理成指定JSON格式，不要添加任何其他文字。',
           },
           {
             role: 'user',
@@ -72,7 +74,7 @@ export async function POST(req: NextRequest) {
 
 ${searchContent}
 
-注意：handle字段必须是纯英文用户名，格式为@username（只含字母数字下划线），用于生成 x.com/username 链接，必须准确。
+注意：handle字段必须是纯英文用户名，格式为@username（只含字母数字下划线）。
 
 目标格式：
 {"candidates":[{"name":"显示名称","handle":"@纯英文用户名","location":"地区或未知","score":匹配分0-100,"skills":["技能1","技能2"],"summary":"2句话总结","reason":"推荐理由","salary_fit":"薪资匹配判断"}],"search_summary":"一句话总结"}`,
@@ -94,12 +96,7 @@ ${searchContent}
     try {
       return NextResponse.json(JSON.parse(jsonStr));
     } catch {
-      // 解析失败时直接返回搜索结果文字
-      return NextResponse.json({
-        candidates: [],
-        search_summary: '',
-        raw_result: searchContent,
-      });
+      return NextResponse.json({ candidates: [], search_summary: '', raw_result: searchContent });
     }
 
   } catch (e: any) {

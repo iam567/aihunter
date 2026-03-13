@@ -23,8 +23,20 @@ export default function AIHunterPage() {
   const [statusText, setStatusText] = useState('');
   const [countdown, setCountdown] = useState(60);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const [excludeHandles, setExcludeHandles] = useState<string[]>([]);
 
-  const startHunt = async () => {
+  const nextBatch = () => {
+    const currentHandles = candidates.map(c => c.handle).filter(Boolean);
+    setExcludeHandles(prev => [...new Set([...prev, ...currentHandles])]);
+    doHunt([...excludeHandles, ...currentHandles]);
+  };
+
+  const startHunt = () => {
+    setExcludeHandles([]);
+    doHunt([]);
+  };
+
+  const doHunt = async (excluded: string[]) => {
     if (!query.trim()) return;
     setIsHunting(true);
     setCandidates([]);
@@ -58,7 +70,7 @@ export default function AIHunterPage() {
       const res = await fetch('/api/hunt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, excludeHandles: excluded }),
       });
       const data = await res.json();
       clearInterval(timer);
@@ -254,6 +266,20 @@ export default function AIHunterPage() {
             </div>
           ))}
         </div>
+
+        {/* 换一批按钮 */}
+        {candidates.length > 0 && !isHunting && (
+          <div className="text-center pt-4 pb-8">
+            <button
+              onClick={nextBatch}
+              className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-white/10 hover:border-yellow-500/30 text-gray-300 hover:text-yellow-400 px-6 py-3 rounded-full text-sm font-medium transition"
+            >
+              <Sparkles className="w-4 h-4" />
+              换一批候选人
+              <span className="text-xs text-gray-600 ml-1">已排除 {excludeHandles.length + candidates.length} 人</span>
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );
