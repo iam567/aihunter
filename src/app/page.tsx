@@ -27,7 +27,7 @@ export default function AIHunterPage() {
 
   const nextBatch = () => {
     const currentHandles = candidates.map(c => c.handle).filter(Boolean);
-    setExcludeHandles(prev => [...new Set([...prev, ...currentHandles])]);
+    setExcludeHandles(prev => Array.from(new Set(prev.concat(currentHandles))));
     doHunt([...excludeHandles, ...currentHandles]);
   };
 
