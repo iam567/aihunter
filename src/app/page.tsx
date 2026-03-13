@@ -127,7 +127,7 @@ export default function AIHunterPage() {
         {/* 标题 */}
         <div className="text-center mb-10">
           <h1 className="text-4xl font-black text-white mb-3 tracking-tight leading-tight">
-            寻找你的<br /><span className="text-yellow-400">最强人才。</span>
+住一<span className="text-yellow-400">AI猎头系统</span>
           </h1>
           <p className="text-gray-500 text-sm">基于 X 实时推文分析，精准猎获最匹配的候选人</p>
         </div>
