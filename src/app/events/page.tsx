@@ -10,7 +10,7 @@ interface EventResult {
   handle: string;
   account_name: string;
   description: string;
-  url: string;
+  tweet_id: string;
   free: boolean;
 }
 
@@ -204,7 +204,13 @@ export default function EventHunterPage() {
                   )}
                 </div>
                 {ev.handle && (
-                  <a href={`https://x.com/${ev.handle.replace(/[@\s]/g,'')}`} target="_blank" rel="noopener noreferrer"
+                  <a
+                    href={
+                      ev.tweet_id
+                        ? `https://x.com/${ev.handle.replace(/[@\s]/g,'')}/status/${ev.tweet_id}`
+                        : `https://x.com/search?q=${encodeURIComponent(ev.name)}&f=live`
+                    }
+                    target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full transition text-white"
                     style={{ background: '#dc2626' }}>
                     <ExternalLink className="w-3 h-3" />X で見る
