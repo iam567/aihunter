@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
 4. 从推文推断的技能和所在地区
 5. 推荐理由
 
+优先条件：优先推荐简介(bio)中写有"DM open"、"お気軽にDM"、"DMください"、"私信"、"联系我"等字样的用户，说明他们愿意接受私信联系。同时请在分析中注明该用户是否看起来开放私信。
+
 重要：@用户名必须是真实存在的X账号用户名，可以直接访问 x.com/用户名 找到该用户。不要编造。`,
         }],
         tools: [{ type: 'x_search' }],
@@ -77,7 +79,7 @@ ${searchContent}
 注意：handle字段必须是纯英文用户名，格式为@username（只含字母数字下划线）。
 
 目标格式：
-{"candidates":[{"name":"显示名称","handle":"@纯英文用户名","location":"地区或未知","score":匹配分0-100,"skills":["技能1","技能2"],"summary":"2句话总结","reason":"推荐理由","salary_fit":"薪资匹配判断"}],"search_summary":"一句话总结"}`,
+{"candidates":[{"name":"显示名称","handle":"@纯英文用户名","location":"地区或未知","score":匹配分0-100,"skills":["技能1","技能2"],"summary":"2句话总结","reason":"推荐理由","salary_fit":"薪资匹配判断","dm_open":true或false}],"search_summary":"一句话总结"}`,
           }
         ],
         temperature: 0.1,

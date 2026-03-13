@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MapPin, Target, Sparkles, AlertCircle, Star } from 'lucide-react';
+import { Search, MapPin, Target, Sparkles, AlertCircle, Star, Send, LockKeyhole } from 'lucide-react';
 
 interface Candidate {
   name: string;
@@ -11,6 +11,7 @@ interface Candidate {
   summary: string;
   reason: string;
   salary_fit: string;
+  dm_open: boolean;
 }
 
 export default function AIHunterPage() {
@@ -254,13 +255,33 @@ export default function AIHunterPage() {
                 {p.summary}
               </div>
 
-              <div className="flex gap-4 ml-10 text-xs">
+              <div className="flex gap-4 ml-10 text-xs mb-4">
                 <div className="flex items-start gap-1.5 text-green-500/80 flex-1">
                   <Target className="w-3 h-3 mt-0.5 shrink-0" />
                   <span>{p.reason}</span>
                 </div>
                 {p.salary_fit && (
                   <div className="text-blue-400/70 shrink-0">{p.salary_fit}</div>
+                )}
+              </div>
+
+              {/* 发私信按钮 */}
+              <div className="ml-10">
+                {p.dm_open !== false ? (
+                  <a
+                    href={`https://x.com/${p.handle.replace(/[@\s]/g,'').trim()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-bold px-4 py-2 rounded-full transition"
+                  >
+                    <Send className="w-3 h-3" />
+                    发私信联系
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-gray-600 text-xs bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+                    <LockKeyhole className="w-3 h-3" />
+                    私信未开放
+                  </span>
                 )}
               </div>
             </div>
