@@ -4,7 +4,6 @@ import { Search, MapPin, Calendar, ExternalLink, Sparkles, AlertCircle, Megaphon
 
 interface EventResult {
   name: string;
-  name_ja: string;
   date: string;
   location: string;
   prefecture: string;
@@ -218,7 +217,7 @@ export default function EventHunterPage() {
                 </div>
                 {ev.handle && (
                   <a
-                    href={`https://x.com/search?q=${encodeURIComponent(ev.name_ja || ev.name)}&src=typed_query`}
+                    href={`https://x.com/search?q=${encodeURIComponent(ev.name)}&src=typed_query`}
                     target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full transition text-white"
                     style={{ background: '#dc2626' }}>
