@@ -17,14 +17,15 @@ export async function POST(req: NextRequest) {
         input: [{
           role: 'user',
           content: `请在X(Twitter)上搜索符合以下招聘需求的真实用户：「${query}」
-          
-请找出5-8个真实存在的X账号，对每个人说明：
-1. 他们的X用户名(@handle)和显示名称
-2. 他们发布过什么内容能证明他们符合要求
-3. 从推文推断他们的技能、所在地区
-4. 为什么推荐这个人
 
-只列出真实搜索到的账号，不要编造。`
+请找出5-8个真实存在的X账号，对每个人必须提供：
+1. 【精确的X用户名】格式必须是 @英文字母数字下划线，例如 @username123，这是用于生成链接的关键字段，必须100%准确
+2. 显示名称（昵称）
+3. 他们发布过什么内容能证明他们符合要求
+4. 从推文推断的技能和所在地区
+5. 推荐理由
+
+重要：@用户名必须是真实存在的X账号用户名，可以直接访问 x.com/用户名 找到该用户。不要编造。`
         }],
         tools: [{ type: 'x_search' }],
       }),
@@ -71,8 +72,10 @@ export async function POST(req: NextRequest) {
 
 ${searchContent}
 
+注意：handle字段必须是纯英文用户名，格式为@username（只含字母数字下划线），用于生成 x.com/username 链接，必须准确。
+
 目标格式：
-{"candidates":[{"name":"显示名称","handle":"@用户名","location":"地区或未知","score":匹配分0-100,"skills":["技能1","技能2"],"summary":"2句话总结","reason":"推荐理由","salary_fit":"薪资匹配判断"}],"search_summary":"一句话总结"}`,
+{"candidates":[{"name":"显示名称","handle":"@纯英文用户名","location":"地区或未知","score":匹配分0-100,"skills":["技能1","技能2"],"summary":"2句话总结","reason":"推荐理由","salary_fit":"薪资匹配判断"}],"search_summary":"一句话总结"}`,
           }
         ],
         temperature: 0.1,

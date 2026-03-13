@@ -164,11 +164,11 @@ export default function AIHunterPage() {
                       {p.name?.[0] || '?'}
                     </div>
                     <div>
-                      <a href={`https://x.com/${p.handle.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-white font-bold text-sm hover:text-yellow-400 transition">
+                      <a href={`https://x.com/${p.handle.replace(/[@\s]/g,'').trim()}`} target="_blank" rel="noopener noreferrer" className="text-white font-bold text-sm hover:text-yellow-400 transition">
                         {p.name}
                       </a>
-                      <a href={`https://x.com/${p.handle.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-gray-500 text-xs ml-2 hover:text-yellow-500 transition underline-offset-2 hover:underline">
-                        {p.handle}
+                      <a href={`https://x.com/${p.handle.replace(/[@\s]/g,'').trim()}`} target="_blank" rel="noopener noreferrer" className="text-gray-500 text-xs ml-2 hover:text-yellow-500 transition underline-offset-2 hover:underline">
+                        {p.handle} ↗
                       </a>
                     </div>
                   </div>
