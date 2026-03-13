@@ -1,136 +1,200 @@
 "use client"
 import React, { useState } from 'react';
-import { Search, User, Zap, Twitter, Github, MapPin, Target, Sparkles } from 'lucide-react';
+import { Search, MapPin, Target, Sparkles, AlertCircle, Star } from 'lucide-react';
 
-export default function AIHunterLanding() {
+interface Candidate {
+  name: string;
+  handle: string;
+  location: string;
+  score: number;
+  skills: string[];
+  summary: string;
+  reason: string;
+  salary_fit: string;
+}
+
+export default function AIHunterPage() {
   const [query, setQuery] = useState('');
   const [isHunting, setIsHunting] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [searchSummary, setSearchSummary] = useState('');
+  const [error, setError] = useState('');
+  const [statusText, setStatusText] = useState('');
 
-  const startHunt = () => {
-    if (!query) return;
+  const startHunt = async () => {
+    if (!query.trim()) return;
     setIsHunting(true);
-    // 模拟搜索延迟
-    setTimeout(() => {
-      setResults([
-        {
-          id: 1,
-          name: "みどちん",
-          handle: "@ZerowakuBlog",
-          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=1",
-          score: 98,
-          location: "东京 / 远程",
-          summary: "AI 办公专家，熟练使用 ChatGPT/Claude 进行业务流优化。近期发布多篇关于 AI 提效的深度博文。",
-          reason: "与您要求的 30万日元薪资高度匹配，且具备实战案例。"
-        },
-        {
-          id: 2,
-          name: "おっくそ",
-          handle: "@ok_kushun",
-          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=2",
-          score: 92,
-          location: "大阪",
-          summary: "全栈开发者，专注 AI 评价与工具落地。在 X 上活跃度极高，言论逻辑清晰。",
-          reason: "技术能力过硬，对 AI 行业有独到见解。"
-        }
-      ]);
-      setIsHunting(false);
+    setCandidates([]);
+    setError('');
+    setSearchSummary('');
+
+    const steps = [
+      '正在分析招聘需求...',
+      '正在搜索 X 上的活跃用户...',
+      '正在分析用户推文内容...',
+      '正在评估技能匹配度...',
+      '生成候选人画像中...',
+    ];
+    let i = 0;
+    setStatusText(steps[0]);
+    const timer = setInterval(() => {
+      i = (i + 1) % steps.length;
+      setStatusText(steps[i]);
     }, 2000);
+
+    try {
+      const res = await fetch('/api/hunt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const data = await res.json();
+      clearInterval(timer);
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setCandidates(data.candidates || []);
+        setSearchSummary(data.search_summary || '');
+      }
+    } catch (e: any) {
+      clearInterval(timer);
+      setError('网络错误，请重试');
+    } finally {
+      setIsHunting(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); startHunt(); }
   };
 
   return (
     <div className="min-h-screen font-sans">
-      {/* 背景装饰 */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_20%,#1a1a1a,0%,#0a0a0a_100%)] pointer-events-none" />
-      
-      {/* 导航栏 */}
-      <nav className="relative z-10 p-6 flex justify-between items-center border-b border-white/5 backdrop-blur-md">
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,#1c1400,#0a0a0a_60%)] pointer-events-none" />
+
+      {/* 导航 */}
+      <nav className="relative z-10 px-6 py-4 flex justify-between items-center border-b border-white/5">
         <div className="flex items-center gap-2">
           <div className="bg-yellow-500 p-1.5 rounded-lg">
-            <Target className="text-black w-5 h-5" />
+            <Target className="text-black w-4 h-4" />
           </div>
-          <span className="text-xl font-black tracking-tighter text-white">AIHUNTER</span>
+          <span className="text-lg font-black tracking-tighter text-white">AIHUNTER</span>
         </div>
-        <div className="flex gap-4">
-          <button className="text-sm text-gray-400 hover:text-white transition">我的猎物</button>
-          <button className="text-sm bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition">设置</button>
-        </div>
+        <span className="text-xs text-gray-600 border border-white/10 px-3 py-1 rounded-full">Powered by Grok</span>
       </nav>
 
-      <main className="relative z-10 max-w-2xl mx-auto pt-20 px-6">
+      <main className="relative z-10 max-w-2xl mx-auto pt-16 px-6 pb-20">
         {/* 标题 */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-black text-white mb-4 tracking-tight">寻找你的<br/><span className="text-yellow-500">最强人才。</span></h1>
-          <p className="text-gray-400">基于 X (Twitter) 实时语境分析，像猎人一样捕获最匹配的人选。</p>
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-black text-white mb-3 tracking-tight leading-tight">
+            寻找你的<br /><span className="text-yellow-400">最强人才。</span>
+          </h1>
+          <p className="text-gray-500 text-sm">基于 X 实时推文分析，精准猎获最匹配的候选人</p>
         </div>
 
         {/* 搜索框 */}
-        <div className="relative group mb-12">
-          <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-2xl blur opacity-25 group-focus-within:opacity-50 transition duration-1000"></div>
-          <div className="relative bg-zinc-900 border border-white/10 rounded-2xl p-2 flex items-center shadow-2xl">
-            <Search className="ml-4 text-gray-500 w-5 h-5" />
-            <input 
+        <div className="relative group mb-10">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600/50 to-orange-600/30 rounded-2xl blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
+          <div className="relative bg-zinc-900 border border-white/10 rounded-2xl p-2 flex items-start gap-2 shadow-2xl">
+            <Search className="ml-3 mt-3.5 text-gray-600 w-4 h-4 shrink-0" />
+            <textarea
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="输入你的指令，例如：寻找东京懂AI办公的职员..."
-              className="flex-1 bg-transparent border-none focus:ring-0 text-white p-4 placeholder:text-gray-600"
+              onKeyDown={handleKeyDown}
+              placeholder="描述你的招聘需求，例如：寻找在东京的、懂AI办公、接受30万日元月薪的职员..."
+              rows={3}
+              className="flex-1 bg-transparent text-white text-sm p-2 placeholder:text-gray-600 resize-none focus:outline-none"
             />
-            <button 
+            <button
               onClick={startHunt}
-              className="bg-yellow-500 hover:bg-yellow-400 text-black px-6 py-3 rounded-xl font-bold transition flex items-center gap-2"
+              disabled={isHunting || !query.trim()}
+              className="shrink-0 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 disabled:cursor-not-allowed text-black px-5 py-2.5 rounded-xl font-bold text-sm transition mt-1 flex items-center gap-1.5"
             >
-              {isHunting ? <Zap className="animate-spin w-4 h-4" /> : <Zap className="w-4 h-4" />}
-              开始狩猎
+              {isHunting ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <Target className="w-3.5 h-3.5" />}
+              {isHunting ? '狩猎中' : '开始狩猎'}
             </button>
           </div>
         </div>
 
-        {/* 状态展示 */}
+        {/* 加载状态 */}
         {isHunting && (
-          <div className="text-center py-10">
-            <div className="inline-flex items-center gap-2 text-yellow-500 animate-pulse">
-              <Sparkles className="w-4 h-4" />
-              <span>正在分析 X 用户推文...</span>
+          <div className="text-center py-12 space-y-3">
+            <div className="flex justify-center gap-1.5">
+              {[0,1,2].map(i => (
+                <div key={i} className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+              ))}
             </div>
+            <p className="text-yellow-500/80 text-sm animate-pulse">{statusText}</p>
           </div>
         )}
 
-        {/* 结果列表 */}
-        <div className="space-y-4 pb-20">
-          {results.map(person => (
-            <div key={person.id} className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 hover:border-yellow-500/30 transition group">
+        {/* 错误提示 */}
+        {error && (
+          <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6 text-red-400 text-sm">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* 搜索总结 */}
+        {searchSummary && (
+          <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4 mb-6 text-yellow-400/80 text-sm">
+            🎯 {searchSummary}
+          </div>
+        )}
+
+        {/* 候选人列表 */}
+        <div className="space-y-4">
+          {candidates.map((p, idx) => (
+            <div key={idx} className="bg-zinc-900/60 border border-white/5 rounded-2xl p-5 hover:border-yellow-500/20 transition group">
               <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-4">
-                  <img src={person.avatar} className="w-14 h-14 rounded-full bg-zinc-800" alt="avatar" />
-                  <div>
-                    <h3 className="text-white font-bold text-lg">{person.name}</h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Twitter className="w-3 h-3" />
-                      <span>{person.handle}</span>
-                      <span>•</span>
-                      <MapPin className="w-3 h-3" />
-                      <span>{person.location}</span>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center text-black font-bold text-xs">
+                      {p.name?.[0] || '?'}
+                    </div>
+                    <div>
+                      <span className="text-white font-bold text-sm">{p.name}</span>
+                      <span className="text-gray-500 text-xs ml-2">{p.handle}</span>
                     </div>
                   </div>
+                  {p.location && (
+                    <div className="flex items-center gap-1 text-xs text-gray-600 ml-10">
+                      <MapPin className="w-3 h-3" />
+                      <span>{p.location}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-500 uppercase font-bold tracking-widest mb-1">匹配度</div>
-                  <div className="text-2xl font-black text-yellow-500">{person.score}%</div>
+                <div className="text-right shrink-0 ml-4">
+                  <div className="flex items-center gap-1 justify-end mb-1">
+                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                    <span className="text-yellow-400 font-black text-xl">{p.score}</span>
+                  </div>
+                  <span className="text-xs text-gray-600">匹配分</span>
                 </div>
-              </div>
-              
-              <div className="bg-black/30 rounded-xl p-4 mb-4">
-                <p className="text-gray-300 text-sm leading-relaxed">{person.summary}</p>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-green-500 font-medium">
-                <Target className="w-3 h-3" />
-                <span>推荐理由：{person.reason}</span>
+              {/* 技能标签 */}
+              {p.skills?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3 ml-10">
+                  {p.skills.map((s, i) => (
+                    <span key={i} className="text-xs bg-white/5 text-gray-400 px-2 py-0.5 rounded-full border border-white/10">{s}</span>
+                  ))}
+                </div>
+              )}
+
+              <div className="bg-black/20 rounded-xl p-3 mb-3 text-gray-400 text-xs leading-relaxed ml-10">
+                {p.summary}
               </div>
-              
-              <div className="mt-6 flex gap-3 opacity-0 group-hover:opacity-100 transition">
-                <button className="flex-1 bg-white text-black py-2 rounded-lg font-bold text-sm">查看完整画像</button>
-                <button className="px-4 bg-zinc-800 text-white py-2 rounded-lg font-bold text-sm">联系 TA</button>
+
+              <div className="flex gap-4 ml-10 text-xs">
+                <div className="flex items-start gap-1.5 text-green-500/80 flex-1">
+                  <Target className="w-3 h-3 mt-0.5 shrink-0" />
+                  <span>{p.reason}</span>
+                </div>
+                {p.salary_fit && (
+                  <div className="text-blue-400/70 shrink-0">{p.salary_fit}</div>
+                )}
               </div>
             </div>
           ))}
