@@ -25,6 +25,10 @@ export default function AIHunterPage() {
   const [countdown, setCountdown] = useState(60);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const [excludeHandles, setExcludeHandles] = useState<string[]>([]);
+  const [gender, setGender] = useState('');
+  const [location, setLocation] = useState('');
+  const [language, setLanguage] = useState('');
+  const [salary, setSalary] = useState('');
 
   const nextBatch = () => {
     const currentHandles = candidates.map(c => c.handle).filter(Boolean);
@@ -68,10 +72,19 @@ export default function AIHunterPage() {
     }, 1000);
 
     try {
+      // 把筛选条件拼入查询
+      const filters = [
+        gender ? `性别：${gender}` : '',
+        location ? `工作地点：${location}` : '',
+        language ? `工作语言：${language}` : '',
+        salary ? `月薪预算：${salary}` : '',
+      ].filter(Boolean).join('，');
+      const fullQuery = filters ? `${query}。附加条件：${filters}` : query;
+
       const res = await fetch('/api/hunt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, excludeHandles: excluded }),
+        body: JSON.stringify({ query: fullQuery, excludeHandles: excluded }),
       });
       const data = await res.json();
       clearInterval(timer);
@@ -140,6 +153,79 @@ export default function AIHunterPage() {
               {isHunting ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <Target className="w-3.5 h-3.5" />}
               {isHunting ? '狩猎中' : '开始狩猎'}
             </button>
+          </div>
+        </div>
+
+        {/* 筛选条件 */}
+        <div className="grid grid-cols-2 gap-3 mb-8">
+          {/* 性别 */}
+          <div>
+            <label className="text-xs text-gray-600 mb-1.5 block">👤 员工性别</label>
+            <select
+              value={gender}
+              onChange={e => setGender(e.target.value)}
+              className="w-full bg-zinc-900 border border-white/10 text-gray-300 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-yellow-500/50"
+            >
+              <option value="">不限</option>
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+          </div>
+
+          {/* 月薪 */}
+          <div>
+            <label className="text-xs text-gray-600 mb-1.5 block">💴 月薪预算</label>
+            <select
+              value={salary}
+              onChange={e => setSalary(e.target.value)}
+              className="w-full bg-zinc-900 border border-white/10 text-gray-300 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-yellow-500/50"
+            >
+              <option value="">不限</option>
+              <option value="10万日元左右">10万日元左右</option>
+              <option value="20万日元左右">20万日元左右</option>
+              <option value="30万日元左右">30万日元左右</option>
+              <option value="50万日元左右">50万日元左右</option>
+              <option value="100万日元左右">100万日元左右</option>
+              <option value="300万日元左右">300万日元左右</option>
+            </select>
+          </div>
+
+          {/* 工作地点 */}
+          <div>
+            <label className="text-xs text-gray-600 mb-1.5 block">📍 工作地点</label>
+            <select
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              className="w-full bg-zinc-900 border border-white/10 text-gray-300 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-yellow-500/50"
+            >
+              <option value="">不限</option>
+              <option value="北海道">北海道</option>
+              <option value="埼玉県">埼玉県</option>
+              <option value="東京都">東京都</option>
+              <option value="京都府">京都府</option>
+              <option value="大阪府">大阪府</option>
+              <option value="兵庫県">兵庫県</option>
+              <option value="奈良県">奈良県</option>
+              <option value="和歌山県">和歌山県</option>
+              <option value="福岡県">福岡県</option>
+            </select>
+          </div>
+
+          {/* 工作语言 */}
+          <div>
+            <label className="text-xs text-gray-600 mb-1.5 block">🌐 工作语言</label>
+            <select
+              value={language}
+              onChange={e => setLanguage(e.target.value)}
+              className="w-full bg-zinc-900 border border-white/10 text-gray-300 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-yellow-500/50"
+            >
+              <option value="">不限</option>
+              <option value="中文">中文</option>
+              <option value="日语">日语</option>
+              <option value="英语">英语</option>
+              <option value="越南语">越南语</option>
+              <option value="韩语">韩语</option>
+            </select>
           </div>
         </div>
 
