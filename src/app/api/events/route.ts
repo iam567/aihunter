@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 6. アカウントの表示名
 7. イベントの概要・見どころ
 8. 入場料（無料かどうか）
-9. そのイベントを宣伝している具体的な推文のID（tweet IDの数字列、例：1234567890123456789）またはツイートURL
+9. そのイベントに関連するX投稿に含まれる画像URL（pbs.twimg.com のURLなど、1〜2枚）
 
 X上で実際に宣伝されている本物のイベントのみ掲載してください。8〜12件探してください。${excludeNote}`,
         }],
@@ -84,7 +84,7 @@ ${searchContent}
 重要：nameは必ず日本語原文のまま、description/summaryのみ中国語（简体中文）に翻訳してください。date/locationも日本語原文のまま。handleは@英数字のみ。
 
 形式：
-{"events":[{"name":"イベント名(日本語原文)","date":"日程(日本語)","location":"会場(日本語)","prefecture":"都道府県","handle":"@英数字ユーザー名","account_name":"アカウント名","description":"活动介绍2句话(中文翻译)","free":true/false}],"summary":"一句话总结(中文)"}`,
+{"events":[{"name":"イベント名(日本語原文)","date":"日程(日本語)","location":"会場(日本語)","prefecture":"都道府県","handle":"@英数字ユーザー名","account_name":"アカウント名","description":"活动介绍2句话(中文翻译)","free":true/false,"images":["画像URL1","画像URL2"]}],"summary":"一句话总结(中文)"}`,
           }
         ],
         temperature: 0.1,

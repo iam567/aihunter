@@ -11,6 +11,7 @@ interface EventResult {
   account_name: string;
   description: string;
   free: boolean;
+  images: string[];
 }
 
 const PREFECTURES = ['不限','北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
@@ -202,6 +203,22 @@ export default function EventHunterPage() {
               </div>
 
               <p className="text-gray-400 text-xs leading-relaxed mb-4 bg-black/20 rounded-xl p-3">{ev.description}</p>
+
+              {/* 活动图片 */}
+              {ev.images?.length > 0 && (
+                <div className={`grid gap-2 mb-4 ${ev.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {ev.images.slice(0, 2).map((img, i) => (
+                    <div key={i} className="relative rounded-xl overflow-hidden bg-zinc-800" style={{ aspectRatio: '16/9' }}>
+                      <img
+                        src={img}
+                        alt={ev.name}
+                        className="w-full h-full object-cover"
+                        onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
