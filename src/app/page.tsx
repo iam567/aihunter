@@ -164,8 +164,12 @@ export default function AIHunterPage() {
                       {p.name?.[0] || '?'}
                     </div>
                     <div>
-                      <span className="text-white font-bold text-sm">{p.name}</span>
-                      <span className="text-gray-500 text-xs ml-2">{p.handle}</span>
+                      <a href={`https://x.com/${p.handle.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-white font-bold text-sm hover:text-yellow-400 transition">
+                        {p.name}
+                      </a>
+                      <a href={`https://x.com/${p.handle.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="text-gray-500 text-xs ml-2 hover:text-yellow-500 transition underline-offset-2 hover:underline">
+                        {p.handle}
+                      </a>
                     </div>
                   </div>
                   {p.location && (
