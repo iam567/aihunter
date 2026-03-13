@@ -18,6 +18,7 @@ export default function AIHunterPage() {
   const [isHunting, setIsHunting] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [searchSummary, setSearchSummary] = useState('');
+  const [rawResult, setRawResult] = useState('');
   const [error, setError] = useState('');
   const [statusText, setStatusText] = useState('');
 
@@ -27,6 +28,7 @@ export default function AIHunterPage() {
     setCandidates([]);
     setError('');
     setSearchSummary('');
+    setRawResult('');
 
     const steps = [
       '正在分析招聘需求...',
@@ -55,6 +57,7 @@ export default function AIHunterPage() {
       } else {
         setCandidates(data.candidates || []);
         setSearchSummary(data.search_summary || '');
+        setRawResult(data.raw_result || '');
       }
     } catch (e: any) {
       clearInterval(timer);
@@ -140,6 +143,13 @@ export default function AIHunterPage() {
         {searchSummary && (
           <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4 mb-6 text-yellow-400/80 text-sm">
             🎯 {searchSummary}
+          </div>
+        )}
+
+        {/* 兜底：原始搜索结果 */}
+        {rawResult && candidates.length === 0 && (
+          <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-5 text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+            {rawResult}
           </div>
         )}
 

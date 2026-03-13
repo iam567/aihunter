@@ -4,15 +4,9 @@ export async function POST(req: NextRequest) {
   const { query } = await req.json();
   if (!query) return NextResponse.json({ error: '请输入搜索需求' }, { status: 400 });
 
-  const prompt = `你是专业AI猎头助手。用户招聘需求：「${query}」
-
-请搜索X(Twitter)上符合条件的真实用户，找5个最匹配的候选人。
-
-严格只返回以下JSON格式，不要任何其他文字、不要markdown代码块：
-{"candidates":[{"name":"名字","handle":"@用户名","location":"地区","score":85,"skills":["技能1","技能2"],"summary":"推文分析总结","reason":"推荐理由","salary_fit":"薪资匹配"}],"search_summary":"搜索总结"}`;
-
   try {
-    const response = await fetch('https://api.x.ai/v1/responses', {
+    // ── Step 1: 让 Grok 真正搜索 X，用自然语言返回 ──
+    const searchRes = await fetch('https://api.x.ai/v1/responses', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
@@ -20,39 +14,75 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: 'grok-4-fast-non-reasoning',
-        input: [{ role: 'user', content: prompt }],
+        input: [{
+          role: 'user',
+          content: `请在X(Twitter)上搜索符合以下招聘需求的真实用户：「${query}」
+          
+请找出5-8个真实存在的X账号，对每个人说明：
+1. 他们的X用户名(@handle)和显示名称
+2. 他们发布过什么内容能证明他们符合要求
+3. 从推文推断他们的技能、所在地区
+4. 为什么推荐这个人
+
+只列出真实搜索到的账号，不要编造。`
+        }],
         tools: [{ type: 'x_search' }],
       }),
     });
 
-    const rawText = await response.text();
-
-    // 如果不是 200，直接返回完整错误信息供调试
-    if (!response.ok) {
-      return NextResponse.json({
-        error: `API错误: ${response.status}`,
-        detail: rawText.slice(0, 300),
-      }, { status: 500 });
+    if (!searchRes.ok) {
+      const err = await searchRes.text();
+      return NextResponse.json({ error: `搜索失败: ${searchRes.status}`, detail: err.slice(0, 200) }, { status: 500 });
     }
 
-    const data = JSON.parse(rawText);
+    const searchData = await searchRes.json();
 
-    // 从 output 里提取文字
-    let content = '';
-    for (const output of data.output || []) {
+    // 提取搜索结果文字
+    let searchContent = '';
+    for (const output of searchData.output || []) {
       if (output.type === 'message') {
         for (const c of output.content || []) {
-          if (c.text) content += c.text;
+          if (c.text) searchContent += c.text;
         }
       }
     }
 
-    if (!content) {
-      return NextResponse.json({ error: '未获取到结果', debug: JSON.stringify(data).slice(0, 300) }, { status: 500 });
+    if (!searchContent) {
+      return NextResponse.json({ error: '搜索无结果，请换个关键词' }, { status: 500 });
     }
 
-    // 提取 JSON
-    let jsonStr = content.trim()
+    // ── Step 2: 用 grok-3 把自然语言结果整理成 JSON ──
+    const formatRes = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个数据整理助手。将用户给你的候选人信息整理成指定JSON格式，不要添加任何其他文字。',
+          },
+          {
+            role: 'user',
+            content: `将以下候选人信息整理成JSON，只返回JSON不要其他内容：
+
+${searchContent}
+
+目标格式：
+{"candidates":[{"name":"显示名称","handle":"@用户名","location":"地区或未知","score":匹配分0-100,"skills":["技能1","技能2"],"summary":"2句话总结","reason":"推荐理由","salary_fit":"薪资匹配判断"}],"search_summary":"一句话总结"}`,
+          }
+        ],
+        temperature: 0.1,
+      }),
+    });
+
+    const formatData = await formatRes.json();
+    const raw = formatData.choices?.[0]?.message?.content || '';
+
+    let jsonStr = raw.trim()
       .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
     const start = jsonStr.indexOf('{');
     const end = jsonStr.lastIndexOf('}');
@@ -61,7 +91,12 @@ export async function POST(req: NextRequest) {
     try {
       return NextResponse.json(JSON.parse(jsonStr));
     } catch {
-      return NextResponse.json({ error: '解析失败', debug: content.slice(0, 300) }, { status: 500 });
+      // 解析失败时直接返回搜索结果文字
+      return NextResponse.json({
+        candidates: [],
+        search_summary: '',
+        raw_result: searchContent,
+      });
     }
 
   } catch (e: any) {
