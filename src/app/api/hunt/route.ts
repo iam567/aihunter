@@ -4,30 +4,12 @@ export async function POST(req: NextRequest) {
   const { query } = await req.json();
   if (!query) return NextResponse.json({ error: '请输入搜索需求' }, { status: 400 });
 
-  const prompt = `你是一个专业的AI猎头助手。
-用户的招聘需求是：「${query}」
+  const prompt = `你是专业AI猎头助手。用户招聘需求：「${query}」
 
-请你使用搜索工具，在 X (Twitter) 上搜索符合以下条件的真实用户：
-1. 根据用户的推文内容，判断其是否具备招聘需求中的技能
-2. 寻找5-8个最匹配的候选人
-3. 对每个候选人，分析其推文来判断：技能匹配度、工作意向、薪资接受度
+请搜索X(Twitter)上符合条件的真实用户，返回5个候选人。
 
-返回 JSON 格式，结构如下（只返回JSON，不要其他文字）：
-{
-  "candidates": [
-    {
-      "name": "显示名称",
-      "handle": "@用户名",
-      "location": "地区（从推文推断）",
-      "score": 匹配分数(0-100),
-      "skills": ["技能1", "技能2"],
-      "summary": "基于推文内容的分析总结（2-3句话）",
-      "reason": "推荐理由",
-      "salary_fit": "薪资匹配判断"
-    }
-  ],
-  "search_summary": "本次搜索总结"
-}`;
+严格只返回以下JSON格式，不要任何其他文字、不要markdown代码块：
+{"candidates":[{"name":"名字","handle":"@用户名","location":"地区","score":85,"skills":["技能1","技能2"],"summary":"推文分析总结","reason":"推荐理由","salary_fit":"薪资判断"}],"search_summary":"搜索总结"}`;
 
   try {
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -43,19 +25,43 @@ export async function POST(req: NextRequest) {
           mode: 'on',
           sources: [{ type: 'x' }],
         },
-        temperature: 0.7,
+        temperature: 0.3,
       }),
     });
 
     const data = await response.json();
+
+    // API 报错处理
+    if (!response.ok) {
+      return NextResponse.json({ error: `API错误: ${data.error?.message || response.status}` }, { status: 500 });
+    }
+
     const content = data.choices?.[0]?.message?.content || '';
 
-    // 提取 JSON
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return NextResponse.json({ error: '解析失败，请重试', raw: content }, { status: 500 });
+    // 多种方式提取 JSON
+    let jsonStr = content.trim();
 
-    const result = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(result);
+    // 去掉 markdown 代码块
+    jsonStr = jsonStr.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
+
+    // 找到第一个 { 到最后一个 }
+    const start = jsonStr.indexOf('{');
+    const end = jsonStr.lastIndexOf('}');
+    if (start !== -1 && end !== -1) {
+      jsonStr = jsonStr.slice(start, end + 1);
+    }
+
+    try {
+      const result = JSON.parse(jsonStr);
+      return NextResponse.json(result);
+    } catch {
+      // JSON 解析失败，返回原始内容方便调试
+      return NextResponse.json({ 
+        error: '解析失败，请重试', 
+        debug: content.slice(0, 500) 
+      }, { status: 500 });
+    }
+
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
