@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, Target, Sparkles, AlertCircle, Star } from 'lucide-react';
 
 interface Candidate {
@@ -21,6 +21,8 @@ export default function AIHunterPage() {
   const [rawResult, setRawResult] = useState('');
   const [error, setError] = useState('');
   const [statusText, setStatusText] = useState('');
+  const [countdown, setCountdown] = useState(60);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   const startHunt = async () => {
     if (!query.trim()) return;
@@ -29,6 +31,7 @@ export default function AIHunterPage() {
     setError('');
     setSearchSummary('');
     setRawResult('');
+    setCountdown(60);
 
     const steps = [
       '正在分析招聘需求...',
@@ -43,6 +46,13 @@ export default function AIHunterPage() {
       i = (i + 1) % steps.length;
       setStatusText(steps[i]);
     }, 2000);
+
+    // 倒计时
+    let sec = 60;
+    countdownRef.current = setInterval(() => {
+      sec -= 1;
+      setCountdown(sec > 0 ? sec : 0);
+    }, 1000);
 
     try {
       const res = await fetch('/api/hunt', {
@@ -64,6 +74,7 @@ export default function AIHunterPage() {
       setError('网络错误，请重试');
     } finally {
       setIsHunting(false);
+      if (countdownRef.current) clearInterval(countdownRef.current);
     }
   };
 
@@ -121,13 +132,43 @@ export default function AIHunterPage() {
 
         {/* 加载状态 */}
         {isHunting && (
-          <div className="text-center py-12 space-y-3">
-            <div className="flex justify-center gap-1.5">
-              {[0,1,2].map(i => (
-                <div key={i} className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-              ))}
+          <div className="space-y-4">
+            {/* 警示横幅 */}
+            <div className="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl px-5 py-4">
+              <div className="shrink-0 w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <p className="text-yellow-400 font-bold text-sm">AI 正在自动检索中，请勿关闭窗口</p>
+                <p className="text-yellow-400/60 text-xs mt-0.5">正在实时分析 X 上的用户推文，请耐心等待...</p>
+              </div>
+              {/* 倒计时圆环 */}
+              <div className="shrink-0 relative w-12 h-12">
+                <svg className="w-12 h-12 -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="#422006" strokeWidth="3" />
+                  <circle
+                    cx="18" cy="18" r="15" fill="none"
+                    stroke="#eab308" strokeWidth="3"
+                    strokeDasharray={`${(countdown / 60) * 94.2} 94.2`}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-yellow-400 font-black text-xs">
+                  {countdown}
+                </span>
+              </div>
             </div>
-            <p className="text-yellow-500/80 text-sm animate-pulse">{statusText}</p>
+
+            {/* 状态文字 + 三点 */}
+            <div className="text-center py-6 space-y-3">
+              <div className="flex justify-center gap-1.5">
+                {[0,1,2].map(i => (
+                  <div key={i} className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                ))}
+              </div>
+              <p className="text-yellow-500/70 text-sm">{statusText}</p>
+            </div>
           </div>
         )}
 
